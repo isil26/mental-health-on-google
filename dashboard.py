@@ -24,15 +24,36 @@ server = app.server
 
 # load data
 print("Loading data...")
+import os
+print(f"Current working directory: {os.getcwd()}")
+print(f"Files in current directory: {os.listdir('.')[:10]}")
+
 try:
+    # Check if data files exist
+    data_files = [
+        'data/processed/clean_trends.csv',
+        'data/raw/geographic_trends.csv',
+        'data/processed/anomaly_report.json'
+    ]
+    for fpath in data_files:
+        if not os.path.exists(fpath):
+            raise FileNotFoundError(f"Missing: {fpath}")
+        print(f"  Found: {fpath}")
+    
+    # Load data
     df = pd.read_csv('data/processed/clean_trends.csv', index_col=0, parse_dates=True)
     geo_df = pd.read_csv('data/raw/geographic_trends.csv', index_col=0)
     with open('data/processed/anomaly_report.json', 'r') as f:
         anomaly_report = json.load(f)
+    
     print(f"SUCCESS: Loaded {df.shape[0]} observations, {df.shape[1]} constructs")
+    print(f"  Date range: {df.index.min()} to {df.index.max()}")
+    print(f"  Columns: {list(df.columns)}")
     DATA_LOADED = True
 except Exception as e:
     print(f"ERROR loading data: {e}")
+    import traceback
+    traceback.print_exc()
     DATA_LOADED = False
     df = pd.DataFrame()
     geo_df = pd.DataFrame()
@@ -42,7 +63,13 @@ except Exception as e:
 if DATA_LOADED:
     # get available constructs
     constructs = [col for col in df.columns if col not in ['year', 'month', 'week', 'quarter', 'day_of_year']]
+    print(f"Available constructs for dashboard: {constructs}")
     
+    if not constructs:
+        print("ERROR: No constructs found in data!")
+        DATA_LOADED = False
+    
+if DATA_LOADED and constructs:
     app.layout = dbc.Container([
         # header
         dbc.Row([
@@ -99,7 +126,7 @@ if DATA_LOADED:
                 dcc.Dropdown(
                     id='construct-dropdown',
                     options=[{'label': c.replace('_', ' ').title(), 'value': c} for c in constructs],
-                    value='depression',
+                    value=constructs[0] if constructs else None,  # Use first available construct
                     clearable=False
                 )
             ], width=4),
@@ -108,7 +135,7 @@ if DATA_LOADED:
                 dcc.Dropdown(
                     id='comparison-dropdown',
                     options=[{'label': c.replace('_', ' ').title(), 'value': c} for c in constructs],
-                    value=['anxiety', 'therapy'],
+                    value=[constructs[1], constructs[2]] if len(constructs) >= 3 else [],  # Use available constructs
                     multi=True
                 )
             ], width=4),
@@ -223,6 +250,13 @@ if DATA_LOADED:
     )
     def update_main_plot(construct, comparisons, ma_window):
         """render main temporal trends plot"""
+        print(f"update_main_plot called: construct={construct}, comparisons={comparisons}, ma_window={ma_window}")
+        
+        # Validate inputs
+        if construct is None or construct not in df.columns:
+            print(f"ERROR: Invalid construct: {construct}")
+            return go.Figure().add_annotation(text="Please select a valid construct", showarrow=False)
+        
         fig = go.Figure()
         
         # main construct
@@ -233,6 +267,7 @@ if DATA_LOADED:
             mode='lines',
             line=dict(width=2)
         ))
+        print(f"  Added main trace: {len(df[construct])} points")
         
         # moving average
         ma = df[construct].rolling(window=ma_window).mean()
@@ -257,13 +292,15 @@ if DATA_LOADED:
                     ))
         
         # mark COVID-19 onset
-        fig.add_vline(
-            x="2020-03-11",
-            line_dash="dash",
-            line_color="red",
-            annotation_text="COVID-19 Pandemic",
-            annotation_position="top"
-        )
+        covid_date = pd.Timestamp("2020-03-11")
+        if df.index.min() <= covid_date <= df.index.max():
+            fig.add_vline(
+                x=covid_date,
+                line_dash="dash",
+                line_color="red",
+                annotation_text="COVID-19 Pandemic",
+                annotation_position="top"
+            )
         
         fig.update_layout(
             title=f"Search Trends: {construct.replace('_', ' ').title()}",
@@ -341,10 +378,18 @@ if DATA_LOADED:
     )
     def update_anomaly(construct):
         """render anomaly detection plot with z-scores"""
+        print(f"update_anomaly called: construct={construct}")
+        
+        # Validate input
+        if construct is None or construct not in df.columns:
+            print(f"ERROR: Invalid construct: {construct}")
+            return go.Figure().add_annotation(text="Please select a valid construct", showarrow=False)
+        
         # calculate z-scores
         mean = df[construct].mean()
         std = df[construct].std()
         z_scores = (df[construct] - mean) / std
+        print(f"  Z-scores calculated: mean={mean:.2f}, std={std:.2f}")
         
         fig = go.Figure()
         
@@ -373,12 +418,14 @@ if DATA_LOADED:
             ))
         
         # COVID marker
-        fig.add_vline(
-            x="2020-03-11",
-            line_dash="dash",
-            line_color="orange",
-            annotation_text="COVID-19"
-        )
+        covid_date = pd.Timestamp("2020-03-11")
+        if df.index.min() <= covid_date <= df.index.max():
+            fig.add_vline(
+                x=covid_date,
+                line_dash="dash",
+                line_color="orange",
+                annotation_text="COVID-19"
+            )
         
         fig.update_layout(
             title=f"Anomaly Detection: {construct.replace('_', ' ').title()}",
@@ -402,4 +449,5 @@ if __name__ == '__main__':
     print(f"\nDashboard running at: http://localhost:8050")
     print(f"{'='*60}\n")
     
-    app.run_server(debug=True, host='0.0.0.0', port=8050)
+    # Use app.run() for Dash 2.x
+    app.run(debug=True, host='0.0.0.0', port=8050)
