@@ -1,0 +1,56 @@
+name: Daily Mental Health Data Collection
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC (avoid peak API usage times)
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  collect-and-update:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run daily data collection
+        run: |
+          python collect_daily_data.py
+        env:
+          PYTHONUNBUFFERED: 1
+      
+      - name: Run preprocessing pipeline
+        run: |
+          python src/preprocessing.py
+      
+      - name: Detect anomalies
+        run: |
+          python src/anomaly_detection.py
+      
+      - name: Commit and push updated data
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated data update: $(date +'%Y-%m-%d')" && git push)
+      
+      - name: Create data summary
+        run: |
+          echo "## Data Collection Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Collection date: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- Latest data point: $(tail -1 data/raw/mental_health_trends.csv | cut -d',' -f1)" >> $GITHUB_STEP_SUMMARY
+          echo "- Total records: $(wc -l < data/raw/mental_health_trends.csv)" >> $GITHUB_STEP_SUMMARY
