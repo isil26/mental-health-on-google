@@ -16,13 +16,13 @@ Production-grade time series forecasting and anomaly detection for mental health
 
 ## 🔗 live dashboard
 
-**[View Live Dashboard](https://mental-health-trends.onrender.com)** *(deploy after following [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md))*
+**[View Live Dashboard](https://mental-health-on-google-1.onrender.com)**
 
-## overview
+## Overview
 
-this project examines the evolution of mental health information-seeking behavior through google search patterns from 2018-2025. the analysis reveals how collective psychological distress manifests in digital behavior, with particular focus on the disruption caused by the covid-19 pandemic and subsequent shifts in mental health awareness.
+This project examines the evolution of mental health information-seeking behavior through google search patterns from 2018-2025. the analysis reveals how collective psychological distress manifests in digital behavior, with particular focus on the disruption caused by the covid-19 pandemic and subsequent shifts in mental health awareness.
 
-from a psychological perspective, search behavior serves as a proxy for underlying emotional states and help-seeking intentions. increased searches for terms like "anxiety" or "therapy" may indicate rising distress levels, reduced stigma around mental health topics, or both. the pre-pandemic baseline (2018-2020) provides critical context for understanding what constitutes "normal" fluctuation versus crisis-driven spikes.
+From a psychological perspective, search behavior serves as a proxy for underlying emotional states and help-seeking intentions. increased searches for terms like "anxiety" or "therapy" may indicate rising distress levels, reduced stigma around mental health topics, or both. the pre-pandemic baseline (2018-2020) provides critical context for understanding what constitutes "normal" fluctuation versus crisis-driven spikes.
 
 **key features:**
 - **2,550+ daily samples** from 2018-2025 establishing pre-covid baseline
@@ -48,21 +48,6 @@ source venv/bin/activate
 python dashboard.py
 ```
 
-### alternative: use makefile
-
-```bash
-make setup      # create venv and install dependencies
-make pipeline   # collect data + run full pipeline
-make dashboard  # launch dash analytics dashboard
-```
-
-### option 3: manual steps
-
-```bash
-# setup
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
 
 ## project structure
 
@@ -216,39 +201,6 @@ while search queries provide valuable insights into collective mental health con
 - **confounding variables**: media coverage, public health campaigns, and algorithm changes may influence search patterns independent of actual distress levels
 - **correlation constraints**: observed associations do not establish causal mechanisms or clinical outcomes
 
-## deployment
-
-### automated data collection
-
-GitHub Actions workflow automatically:
-- Runs daily at 2 AM UTC
-- Collects latest Google Trends data
-- Updates all datasets
-- Commits changes back to repository
-
-**Manual trigger**: Go to Actions tab → "Daily Data Collection" → "Run workflow"
-
-### hosting options
-
-**Option 1: Render (Recommended)**
-```bash
-1. Fork/clone this repository
-2. Sign up at render.com with GitHub
-3. Create New Web Service
-4. Select this repository
-5. Configure:
-   - Build: pip install -r requirements.txt
-   - Start: gunicorn dashboard:server --bind 0.0.0.0:$PORT
-   - Plan: Free
-6. Deploy (takes 5-10 minutes)
-```
-
-**Option 2: Railway**
-```bash
-1. Sign up at railway.app with GitHub
-2. New Project → Deploy from GitHub
-3. Select repository → Auto-deploys
-```
 
 ## project structure
 
@@ -273,17 +225,6 @@ GitHub Actions workflow automatically:
 └── notebooks/                      # Jupyter exploration
 ```
 
-## cv/portfolio summary
-
-**4-Bullet Technical Description:**
-
-1. Implemented multiple forecasting architectures (ARIMA/SARIMAX, Facebook Prophet, LSTMs) with automated model selection based on validation metrics; achieved 85%+ accuracy on 30-day predictions
-
-2. Designed ensemble anomaly detection combining unsupervised ML (Isolation Forest) and statistical methods (z-score) to identify collective stress events; validated against COVID-19 timeline
-
-3. Developed scalable ETL pipeline with pytrends API integration, feature engineering (STL decomposition), and automated daily data collection via GitHub Actions
-
-4. Built production-grade Plotly Dash dashboard with interactive visualizations and psychology-informed interpretation framework (Health Action Process Model, trauma psychology)
 
 ## contributing
 
